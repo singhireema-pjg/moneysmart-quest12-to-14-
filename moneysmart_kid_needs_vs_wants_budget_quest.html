@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoneySmart Kid: Needs vs. Wants Budget Quest</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js for Budget Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Canvas Confetti for Victory Celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            need: {
+              light: '#38bdf8',
+              DEFAULT: '#0284c7',
+              dark: '#0369a1',
+            },
+            want: {
+              light: '#f472b6',
+              DEFAULT: '#db2777',
+              dark: '#be185d',
+            },
+            balanced: {
+              light: '#fbbf24',
+              DEFAULT: '#d97706',
+              dark: '#b45309',
+            }
+          },
+          animation: {
+            'bounce-short': 'bounce 0.6s ease-in-out 1',
+            'pulse-glow': 'pulseGlow 2s infinite',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)' },
+              '50%': { boxShadow: '0 0 25px rgba(236, 72, 153, 0.6)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar & interactive card effects */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .option-card {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .option-card:hover {
+      transform: translateY(-3px);
+    }
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased selection:bg-pink-500 selection:text-white flex flex-col">
+
+  <!-- Top Navigation / Game Header -->
+  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Logo & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i data-lucide="piggy-bank" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-pink-400">
+            MoneySmart Quest
+          </h1>
+          <p class="text-xs text-slate-400 font-medium">Needs vs. Wants Budget Simulator</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex items-center gap-3">
+        <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-semibold">
+          <i data-lucide="volume-2" id="soundIcon" class="w-4 h-4 text-cyan-400"></i>
+          <span class="hidden sm:inline" id="soundLabel">Sound ON</span>
+        </button>
+
+        <button onclick="openTutorialModal()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold">
+          <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i>
+          <span>How to Play</span>
+        </button>
+
+        <button onclick="resetGame()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-rose-200 transition flex items-center gap-1.5 text-xs font-semibold">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 text-rose-400"></i>
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Categories & Option Selection (Cols 1-7) -->
+    <section class="lg:col-span-7 flex flex-col gap-6">
+      
+      <!-- Mission Brief / Status Banner -->
+      <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+        <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-2 border border-cyan-500/20">
+              <i data-lucide="target" class="w-3.5 h-3.5"></i> Monthly Budget Challenge
+            </div>
+            <h2 class="text-xl font-bold text-white">Select Choices for 6 Life Categories</h2>
+            <p class="text-xs text-slate-300 mt-1">Make smart tradeoffs! Cover your <span class="text-sky-400 font-semibold">Needs</span>, budget for <span class="text-pink-400 font-semibold">Wants</span>, and reach your savings goal.</p>
+          </div>
+
+          <!-- Savings Goal Badge -->
+          <div class="flex-shrink-0 bg-slate-800/80 border border-slate-700 p-3 rounded-xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <i data-lucide="bike" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="text-[10px] uppercase font-bold text-slate-400">Dream Savings Goal</div>
+              <div class="text-base font-extrabold text-amber-400" id="savingsGoalDisplay">$150.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories Accordion / Selection Cards Container -->
+      <div id="categoriesContainer" class="space-y-5">
+        <!-- Dynamically Rendered via JS -->
+      </div>
+    </section>
+
+
+    <!-- RIGHT COLUMN: Budget Gauge, Needs vs Wants Chart, & Action Panel (Cols 8-12) -->
+    <section class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- Budget Health Meter Card -->
+      <div class="glass-panel p-5 rounded-2xl flex flex-col gap-4 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i> Budget Health Meter
+          </h3>
+          <span id="budgetStatusBadge" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            Healthy
+          </span>
+        </div>
+
+        <!-- Remaining Budget Big Display -->
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 text-center relative">
+          <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Remaining Monthly Cash</span>
+          <div id="remainingBudgetDisplay" class="text-4xl font-extrabold text-emerald-400 transition-colors duration-300">$1,000.00</div>
+          <div id="budgetSubtext" class="text-xs text-slate-400 mt-1">Starting allowance: $1,000</div>
+        </div>
+
+        <!-- Multi-segment Visual Progress Bar -->
+        <div>
+          <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+            <span>Budget Allocation ($1,000)</span>
+            <span id="percentAllocatedText">0% Used</span>
+          </div>
+          
+          <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700/60 flex">
+            <div id="barNeeds" class="h-full bg-gradient-to-r from-sky-500 to-cyan-400 rounded-l-full transition-all duration-300" style="width: 0%" title="Needs"></div>
+            <div id="barWants" class="h-full bg-gradient-to-r from-pink-500 to-rose-400 transition-all duration-300" style="width: 0%" title="Wants"></div>
+            <div id="barSavings" class="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300" style="width: 0%" title="Saved"></div>
+            <div id="barRemaining" class="h-full bg-slate-800 transition-all duration-300" style="width: 100%" title="Unallocated"></div>
+          </div>
+
+          <!-- Color Legend -->
+          <div class="grid grid-cols-3 gap-2 mt-3 text-[11px] font-medium text-slate-300">
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-md bg-sky-500 inline-block"></span>
+              <span>Needs (<span id="needsTotalText">$0</span>)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-md bg-pink-500 inline-block"></span>
+              <span>Wants (<span id="wantsTotalText">$0</span>)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-md bg-amber-400 inline-block"></span>
+              <span>Savings (<span id="savingsAllocatedText">$0</span>)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Chart Panel -->
+      <div class="glass-panel p-5 rounded-2xl flex flex-col items-center justify-center min-h-[260px] relative">
+        <div class="w-full flex items-center justify-between mb-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i> Spending Breakdown
+          </h3>
+          <span class="text-[11px] text-slate-400">Needs vs Wants Ratio</span>
+        </div>
+
+        <div class="relative w-48 h-48 flex items-center justify-center my-2">
+          <canvas id="budgetChart"></canvas>
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Spent</span>
+            <span id="totalSpentText" class="text-lg font-extrabold text-white">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Surprise Life Event & Submit -->
+      <div class="glass-panel p-5 rounded-2xl flex flex-col gap-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> Life Events & Finalizing
+        </h3>
+        <p class="text-xs text-slate-300">Life is full of surprises! Draw an unexpected event to test your financial emergency plan.</p>
+
+        <!-- Draw Event Button -->
+        <button id="lifeEventBtn" onclick="triggerRandomEvent()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Draw Random Life Event</span>
+        </button>
+
+        <!-- Active Life Event Indicator -->
+        <div id="activeEventCard" class="hidden p-3 rounded-xl bg-slate-800/90 border border-amber-500/30 flex items-start gap-3">
+          <div id="eventIconContainer" class="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
+            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+          </div>
+          <div class="flex-1 text-xs">
+            <div class="flex justify-between font-bold text-slate-200">
+              <span id="eventTitle">Event Title</span>
+              <span id="eventAmount" class="text-emerald-400">+$0</span>
+            </div>
+            <p id="eventDescription" class="text-slate-400 mt-0.5">Description</p>
+          </div>
+        </div>
+
+        <hr class="border-slate-800 my-1">
+
+        <!-- Complete Month Button -->
+        <button id="finishMonthBtn" onclick="evaluateMonth()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-600 hover:opacity-95 text-white font-extrabold text-sm shadow-xl shadow-cyan-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2">
+          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+          <span>Finish Month & See Results</span>
+        </button>
+      </div>
+
+    </section>
+  </main>
+
+
+
+  <!-- MODAL 1: Random Surprise Life Event -->
+  <div id="eventModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative overflow-hidden animate-bounce-short">
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="dices" class="w-8 h-8"></i>
+      </div>
+
+      <span class="px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-500/20">
+        Surprise Life Event!
+      </span>
+
+      <h3 id="modalEventTitle" class="text-xl font-extrabold text-white mt-3">Flat Tire Repair</h3>
+      
+      <div id="modalEventAmount" class="text-3xl font-extrabold text-rose-400 my-2">-$30.00</div>
+
+      <p id="modalEventDesc" class="text-sm text-slate-300 mb-6">
+        Your bike got a flat tire while riding to school. You need to pay for a new tube and repair kit!
+      </p>
+
+      <button onclick="closeModal('eventModal')" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-amber-500/20">
+        Apply to Budget & Continue
+      </button>
+    </div>
+  </div>
+
+
+  <!-- MODAL 2: How To Play / Concept Guide -->
+  <div id="tutorialModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal('tutorialModal')" class="absolute top-4 right-4 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+          <i data-lucide="book-open" class="w-5 h-5"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">How to Play: Needs vs. Wants</h3>
+      </div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-300">
+        <div class="p-3.5 rounded-xl bg-sky-950/50 border border-sky-500/30">
+          <h4 class="font-extrabold text-sky-400 flex items-center gap-2 mb-1">
+            <i data-lucide="shield-check" class="w-4 h-4"></i> What is a Need?
+          </h4>
+          <p>Needs are basics required for daily living and survival—like shelter, healthy groceries, basic clothing, and medical care. <strong class="text-white">Cover these first!</strong></p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-pink-950/50 border border-pink-500/30">
+          <h4 class="font-extrabold text-pink-400 flex items-center gap-2 mb-1">
+            <i data-lucide="heart" class="w-4 h-4"></i> What is a Want?
+          </h4>
+          <p>Wants are fun extras that make life exciting—designer sneakers, eating out daily, or high-end gadgets. They are optional and can be dialed back when money is tight.</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-amber-950/50 border border-amber-500/30">
+          <h4 class="font-extrabold text-amber-400 flex items-center gap-2 mb-1">
+            <i data-lucide="scale" class="w-4 h-4"></i> The Balanced Option
+          </h4>
+          <p>A smart compromise between basic survival and high luxury (e.g., home cooking with an occasional pizza night).</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-800 border border-slate-700">
+          <h4 class="font-bold text-white mb-1">Your Mission Rules:</h4>
+          <ul class="list-disc list-inside space-y-1 text-slate-300">
+            <li>You start with <strong>$1,000 allowance</strong>.</li>
+            <li>Select 1 option for each of the 6 categories.</li>
+            <li>Keep money aside for your <strong>$150 Bicycle Savings Goal</strong>.</li>
+            <li>Draw a <strong>Surprise Life Event</strong> before ending the month!</li>
+          </ul>
+        </div>
+      </div>
+
+      <button onclick="closeModal('tutorialModal')" class="w-full mt-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm transition">
+        Got It, Let's Play!
+      </button>
+    </div>
+  </div>
+
+
+  <!-- MODAL 3: End-of-Month Reflection & Victory Summary -->
+  <div id="summaryModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Victory Banner Header -->
+      <div class="text-center mb-6">
+        <div id="summaryBadge" class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-amber-500/20">
+          <i data-lucide="trophy" class="w-10 h-10"></i>
+        </div>
+        <h2 id="summaryTitle" class="text-2xl font-black text-white">Month Completed!</h2>
+        <p id="summarySubtitle" class="text-sm text-slate-300 mt-1">Here is how well you managed your budget & priorities.</p>
+      </div>
+
+      <!-- Key Score Indicators Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Essential Needs Met?</span>
+          <div id="summaryNeedsStatus" class="text-sm font-extrabold text-emerald-400 flex items-center justify-center gap-1">
+            <i data-lucide="check-circle" class="w-4 h-4"></i> 100% Covered
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Dream Savings Goal</span>
+          <div id="summarySavingsStatus" class="text-sm font-extrabold text-amber-400 flex items-center justify-center gap-1">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Reached $150!
+          </div>
+        </div>
+
+        <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Budget Grade</span>
+          <div id="summaryGrade" class="text-xl font-black text-cyan-400">
+            A+
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Recap Details -->
+      <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-2.5 text-xs sm:text-sm mb-6">
+        <div class="flex justify-between text-slate-300">
+          <span>Starting Budget:</span>
+          <span class="font-bold text-white">$1,000.00</span>
+        </div>
+        <div class="flex justify-between text-sky-300">
+          <span>Total Spent on Needs:</span>
+          <span id="summarySpentNeeds" class="font-bold">$0.00</span>
+        </div>
+        <div class="flex justify-between text-pink-300">
+          <span>Total Spent on Wants:</span>
+          <span id="summarySpentWants" class="font-bold">$0.00</span>
+        </div>
+        <div class="flex justify-between text-amber-300">
+          <span>Surprise Event Impact:</span>
+          <span id="summaryEventImpact" class="font-bold">$0.00</span>
+        </div>
+        <hr class="border-slate-800">
+        <div class="flex justify-between text-base font-extrabold text-white">
+          <span>Final Remaining Cash:</span>
+          <span id="summaryFinalCash" class="text-emerald-400">$0.00</span>
+        </div>
+      </div>
+
+      <!-- Educational Feedback Box -->
+      <div id="summaryFeedbackBox" class="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs sm:text-sm text-cyan-200 mb-6">
+        <!-- Dynamic feedback text inserted here -->
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3">
+        <button onclick="resetGame()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-90 text-white font-extrabold text-sm transition shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Play Next Month
+        </button>
+        <button onclick="closeModal('summaryModal')" class="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition">
+          Review Choices
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <script>
+    /* ==========================================================================
+       GAME STATE & DATA DEFINITIONS
+       ========================================================================== */
+    const STARTING_BUDGET = 1000;
+    const SAVINGS_GOAL = 150;
+
+    let soundEnabled = true;
+    let currentEvent = null; // Stores drawn life event
+
+    // 6 Scenario Categories with 3 choices each (Essential Need, Balanced, Luxury Want)
+    const gameCategories = [
+      {
+        id: 'housing',
+        title: 'Housing & Utilities',
+        icon: 'home',
+        description: 'Where you live and basic power, heat, and water.',
+        options: [
+          {
+            id: 'housing_need',
+            type: 'need',
+            title: 'Basic Cozy Apartment',
+            cost: 400,
+            badge: 'Essential Need',
+            icon: 'home',
+            desc: 'Cozy apartment with electricity, clean water, and winter heating.',
+            tip: '💡 Smart Choice! Housing is your biggest essential need. You secured safety first!'
+          },
+          {
+            id: 'housing_balanced',
+            type: 'balanced',
+            title: 'Standard Apartment + Fast Wi-Fi',
+            cost: 500,
+            badge: 'Balanced Option',
+            icon: 'wifi',
+            desc: 'Comfortable home with high-speed internet for schoolwork and movies.',
+            tip: '⚖️ Wi-Fi makes studying & home entertainment easier while keeping shelter safe.'
+          },
+          {
+            id: 'housing_want',
+            type: 'want',
+            title: 'Luxury Suite with Rooftop Pool',
+            cost: 700,
+            badge: 'Luxury Want',
+            icon: 'sparkles',
+            desc: 'Flashy penthouse with a gaming lounge & private pool.',
+            tip: '⚠️ Luxury housing eats up 70% of your budget! It leaves very little for food or savings.'
+          }
+        ]
+      },
+      {
+        id: 'food',
+        title: 'Food & Groceries',
+        icon: 'utensils',
+        description: 'Nutritious meals vs fast food dining.',
+        options: [
+          {
+            id: 'food_need',
+            type: 'need',
+            title: 'Home Cooked Grocery Staples',
+            cost: 150,
+            badge: 'Essential Need',
+            icon: 'shopping-cart',
+            desc: 'Healthy vegetables, pasta, fruits, and bread for cooking at home.',
+            tip: '💡 Groceries feed you healthy food all month for a fraction of restaurant costs!'
+          },
+          {
+            id: 'food_balanced',
+            type: 'balanced',
+            title: 'Groceries + Friday Pizza Night',
+            cost: 220,
+            badge: 'Balanced Option',
+            icon: 'pizza',
+            desc: 'Home cooking all week plus a fun takeout order on weekends.',
+            tip: '⚖️ A nice balance! You eat healthy home meals and enjoy occasional fun dining.'
+          },
+          {
+            id: 'food_want',
+            type: 'want',
+            title: 'Daily Restaurant & Food Delivery',
+            cost: 380,
+            badge: 'Luxury Want',
+            icon: 'soup',
+            desc: 'Ordering takeout apps and eating out every single day.',
+            tip: '⚠️ Food delivery fees and restaurants add up fast! That money could buy a bicycle.'
+          }
+        ]
+      },
+      {
+        id: 'clothing',
+        title: 'Clothing & Wardrobe',
+        icon: 'shirt',
+        description: 'Everyday school wardrobe vs designer brands.',
+        options: [
+          {
+            id: 'clothing_need',
+            type: 'need',
+            title: 'Basic School Wardrobe',
+            cost: 50,
+            badge: 'Essential Need',
+            icon: 'shirt',
+            desc: 'Comfortable jeans, shirts, jackets, and sturdy everyday shoes.',
+            tip: '💡 Clothing keeps you warm and protected. Basic clothes do the job perfectly!'
+          },
+          {
+            id: 'clothing_balanced',
+            type: 'balanced',
+            title: 'Brand Name Clothes (Clearance Sale)',
+            cost: 100,
+            badge: 'Balanced Option',
+            icon: 'tag',
+            desc: 'Cool brand name clothes bought at discount clearance outlets.',
+            tip: '⚖️ Smart shopping! You get stylish brands without paying full retail price.'
+          },
+          {
+            id: 'clothing_want',
+            type: 'want',
+            title: 'Limited Edition Designer Kicks',
+            cost: 220,
+            badge: 'Luxury Want',
+            icon: 'footprints',
+            desc: 'Flashy hypebeast sneakers and designer hoodie.',
+            tip: '⚠️ Designer shoes look cool, but they don’t keep you warmer than regular shoes.'
+          }
+        ]
+      },
+      {
+        id: 'transport',
+        title: 'Transportation',
+        icon: 'bus',
+        description: 'Getting to school, hobbies, and around town.',
+        options: [
+          {
+            id: 'transport_need',
+            type: 'need',
+            title: 'Monthly Bus Pass & Bicycle',
+            cost: 40,
+            badge: 'Essential Need',
+            icon: 'bus',
+            desc: 'Unlimited city transit rides plus riding your bike on sunny days.',
+            tip: '💡 Public transit and biking are reliable, eco-friendly, and very affordable!'
+          },
+          {
+            id: 'transport_balanced',
+            type: 'balanced',
+            title: 'Bus Pass + Occasional Rideshare',
+            cost: 80,
+            badge: 'Balanced Option',
+            icon: 'car',
+            desc: 'Bus pass for daily school trips, plus car rides when running late.',
+            tip: '⚖️ Saves time on emergency mornings while keeping total costs reasonable.'
+          },
+          {
+            id: 'transport_want',
+            type: 'want',
+            title: 'Daily Electric Scooter Rentals',
+            cost: 160,
+            badge: 'Luxury Want',
+            icon: 'zap',
+            desc: 'Renting e-scooters everywhere you travel around town.',
+            tip: '⚠️ E-scooters are super fun, but paying per minute every day drains your wallet.'
+          }
+        ]
+      },
+      {
+        id: 'entertainment',
+        title: 'Entertainment & Fun',
+        icon: 'gamepad-2',
+        description: 'Free community hobbies vs gaming & streaming.',
+        options: [
+          {
+            id: 'entertainment_need',
+            type: 'need',
+            title: 'Free Library & Park Sports',
+            cost: 0,
+            badge: 'Essential Need (Free)',
+            icon: 'smile',
+            desc: 'Borrowing books/movies from library and playing sports at park.',
+            tip: '💡 $0 Fun! You do not need to spend money to have awesome times with friends.'
+          },
+          {
+            id: 'entertainment_balanced',
+            type: 'balanced',
+            title: '1 Streaming Service + Board Games',
+            cost: 30,
+            badge: 'Balanced Option',
+            icon: 'tv',
+            desc: 'Watching popular shows plus playing tabletop board games.',
+            tip: '⚖️ Reasonable budget for entertainment that keeps fun affordable.'
+          },
+          {
+            id: 'entertainment_want',
+            type: 'want',
+            title: 'All Streaming Apps + VIP Game Pass',
+            cost: 90,
+            badge: 'Luxury Want',
+            icon: 'gamepad-2',
+            desc: '4 different video streaming services and online gaming subscriptions.',
+            tip: '⚠️ Do you really watch 4 services at once? Trimming 2 saves big cash!'
+          }
+        ]
+      },
+      {
+        id: 'health',
+        title: 'Health & Emergencies',
+        icon: 'heart-pulse',
+        description: 'Basic health supplies vs luxury spa memberships.',
+        options: [
+          {
+            id: 'health_need',
+            type: 'need',
+            title: 'First Aid Kit & Emergency Savings',
+            cost: 50,
+            badge: 'Essential Need',
+            icon: 'shield-alert',
+            desc: 'Medicines, bandages, dental hygiene, and emergency backup money.',
+            tip: '💡 Essential! Taking care of health prevents big medical bills later.'
+          },
+          {
+            id: 'health_balanced',
+            type: 'balanced',
+            title: 'Community Gym Pass & Health Kit',
+            cost: 80,
+            badge: 'Balanced Option',
+            icon: 'activity',
+            desc: 'Basic health supplies plus access to local pool & basketball gym.',
+            tip: '⚖️ Staying active in a local gym keeps you fit without huge fees.'
+          },
+          {
+            id: 'health_want',
+            type: 'want',
+            title: 'Luxury Spa & Boutique Fitness Club',
+            cost: 150,
+            badge: 'Luxury Want',
+            icon: 'crown',
+            desc: 'Fancy spa with smoothie bar, saunas, and personal trainer sessions.',
+            tip: '⚠️ Very fancy! High-end gyms are nice wants, but basic sports work too.'
+          }
+        ]
+      }
+    ];
+
+    // Surprise Life Events Pool
+    const lifeEventsPool = [
+      {
+        title: 'Bicycle Flat Tire!',
+        amount: -25,
+        type: 'negative',
+        icon: 'wrench',
+        desc: 'Your bike tire got punctured on the way to school. You had to pay for a repair kit and tube!'
+      },
+      {
+        title: 'Sold Old Toys on eBay!',
+        amount: 40,
+        type: 'positive',
+        icon: 'coins',
+        desc: 'You cleaned out your closet and sold old action figures and games! Extra pocket cash!'
+      },
+      {
+        title: 'Birthday Gift from Grandma!',
+        amount: 50,
+        type: 'positive',
+        icon: 'gift',
+        desc: 'Grandma sent you a sweet birthday card with cash inside! Time to boost your savings!'
+      },
+      {
+        title: 'Pet-sat Neighbor’s Dog!',
+        amount: 35,
+        type: 'positive',
+        icon: 'dog',
+        desc: 'You walked and fed the neighbor’s golden retriever over the weekend. Hard work pays off!'
+      },
+      {
+        title: 'Caught a Cold - Medicine Needed',
+        amount: -30,
+        type: 'negative',
+        icon: 'thermometer',
+        desc: 'You woke up feverish and needed cough syrup, tissue boxes, and vitamins from the pharmacy.'
+      },
+      {
+        title: 'Dropped Phone Screen Protector',
+        amount: -20,
+        type: 'negative',
+        icon: 'smartphone',
+        desc: 'Your phone slipped out of your pocket! Luckily only the screen protector cracked and needed replacing.'
+      }
+    ];
+
+    // Player Choices State: Map of categoryId -> selected option object
+    let selections = {};
+
+    // Chart.js Instance
+    let chartInstance = null;
+
+
+    /* ==========================================================================
+       WEB AUDIO SYNTHESIZER (Sound Effects Without External Dependencies)
+       ========================================================================== */
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'select') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'event') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+          osc.frequency.linearRampToValueAtTime(900, now + 0.3);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === 'win') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.12); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.24); // G5
+          osc.frequency.setValueAtTime(1046.50, now + 0.36); // C6
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        }
+      } catch (e) {
+        console.log('Audio playback prevented or unsupported');
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const soundIcon = document.getElementById('soundIcon');
+      const soundLabel = document.getElementById('soundLabel');
+      
+      if (soundEnabled) {
+        soundIcon.setAttribute('data-lucide', 'volume-2');
+        soundLabel.innerText = 'Sound ON';
+      } else {
+        soundIcon.setAttribute('data-lucide', 'volume-x');
+        soundLabel.innerText = 'Muted';
+      }
+      lucide.createIcons();
+    }
+
+
+    /* ==========================================================================
+       CORE GAME INITIALIZATION & RENDER FUNCTIONS
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      initGame();
+      initChart();
+      lucide.createIcons();
+    });
+
+    function initGame() {
+      // Default initial state: Pre-select Essential Need for every category
+      selections = {};
+      currentEvent = null;
+
+      gameCategories.forEach(cat => {
+        selections[cat.id] = cat.options[0]; // Default to Essential Need option
+      });
+
+      renderCategories();
+      updateBudgetStats();
+      hideActiveEventCard();
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categoriesContainer');
+      container.innerHTML = '';
+
+      gameCategories.forEach(cat => {
+        const selectedOpt = selections[cat.id];
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'glass-panel p-5 rounded-2xl flex flex-col gap-4 border border-slate-800';
+
+        cardEl.innerHTML = `
+          <!-- Category Header -->
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-slate-800 text-cyan-400 flex items-center justify-center border border-slate-700">
+                <i data-lucide="${cat.icon}" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">${cat.title}</h3>
+                <p class="text-xs text-slate-400">${cat.description}</p>
+              </div>
+            </div>
+            <span class="text-xs font-bold text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+              Chosen: <span class="text-cyan-400">$${selectedOpt.cost}</span>
+            </span>
+          </div>
+
+          <!-- 3 Options Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            ${cat.options.map(opt => {
+              const isSelected = selectedOpt.id === opt.id;
+              
+              // Style differentiation for Need vs Balanced vs Want
+              let borderClass = 'border-slate-800 bg-slate-900/60 text-slate-300';
+              let badgeBg = 'bg-slate-800 text-slate-400';
+
+              if (opt.type === 'need') {
+                badgeBg = 'bg-sky-500/20 text-sky-300 border border-sky-500/30';
+                if (isSelected) borderClass = 'border-sky-500 bg-sky-950/40 text-white shadow-lg shadow-sky-500/10 ring-2 ring-sky-500/50';
+              } else if (opt.type === 'balanced') {
+                badgeBg = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+                if (isSelected) borderClass = 'border-amber-500 bg-amber-950/40 text-white shadow-lg shadow-amber-500/10 ring-2 ring-amber-500/50';
+              } else if (opt.type === 'want') {
+                badgeBg = 'bg-pink-500/20 text-pink-300 border border-pink-500/30';
+                if (isSelected) borderClass = 'border-pink-500 bg-pink-950/40 text-white shadow-lg shadow-pink-500/10 ring-2 ring-pink-500/50';
+              }
+
+              return `
+                <button 
+                  onclick="selectOption('${cat.id}', '${opt.id}')"
+                  class="option-card p-3.5 rounded-xl border text-left flex flex-col justify-between ${borderClass} relative group"
+                >
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md ${badgeBg}">
+                        ${opt.badge}
+                      </span>
+                      <span class="text-xs font-black ${isSelected ? 'text-white' : 'text-slate-400'}">
+                        $${opt.cost}
+                      </span>
+                    </div>
+
+                    <h4 class="text-xs sm:text-sm font-bold mb-1 group-hover:text-cyan-300 transition-colors">
+                      ${opt.title}
+                    </h4>
+
+                    <p class="text-[11px] text-slate-400 leading-snug">
+                      ${opt.desc}
+                    </p>
+                  </div>
+
+                  ${isSelected ? `
+                    <div class="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-cyan-400">
+                      <span><i data-lucide="check-circle" class="w-3.5 h-3.5 inline mr-1"></i> Selected</span>
+                      <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </div>
+                  ` : `
+                    <div class="mt-3 pt-2 text-[11px] font-medium text-slate-400 group-hover:text-slate-200 transition-colors">
+                      Tap to choose
+                    </div>
+                  `}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Dynamic Educational Tip Banner -->
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5">
+            <i data-lucide="lightbulb" class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <span class="font-bold text-white">Budget Insight:</span> ${selectedOpt.tip}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(cardEl);
+      });
+
+      lucide.createIcons();
+    }
+
+    /* Option Selection Trigger */
+    function selectOption(categoryId, optionId) {
+      const category = gameCategories.find(c => c.id === categoryId);
+      if (!category) return;
+
+      const chosenOption = category.options.find(o => o.id === optionId);
+      if (!chosenOption) return;
+
+      selections[categoryId] = chosenOption;
+      playSound('select');
+
+      renderCategories();
+      updateBudgetStats();
+    }
+
+
+    /* ==========================================================================
+       BUDGET CALCULATIONS & VISUAL UPDATES
+       ========================================================================== */
+    function updateBudgetStats() {
+      let totalNeeds = 0;
+      let totalWants = 0;
+
+      // Sum spent across categories based on choice type
+      Object.values(selections).forEach(opt => {
+        if (opt.type === 'need') {
+          totalNeeds += opt.cost;
+        } else if (opt.type === 'want') {
+          totalWants += opt.cost;
+        } else if (opt.type === 'balanced') {
+          // Balanced split: 60% Need core, 40% Want comfort
+          totalNeeds += Math.round(opt.cost * 0.6);
+          totalWants += Math.round(opt.cost * 0.4);
+        }
+      });
+
+      const totalSpent = totalNeeds + totalWants;
+      const eventImpact = currentEvent ? currentEvent.amount : 0;
+      
+      // Net calculation
+      const remainingCash = STARTING_BUDGET - totalSpent + eventImpact;
+      
+      // Savings achieved (Money left over up to $150)
+      const currentSavings = Math.max(0, Math.min(SAVINGS_GOAL, remainingCash));
+
+      /* Update Numbers in UI */
+      document.getElementById('remainingBudgetDisplay').innerText = `$${remainingCash.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      document.getElementById('needsTotalText').innerText = `$${totalNeeds}`;
+      document.getElementById('wantsTotalText').innerText = `$${totalWants}`;
+      document.getElementById('savingsAllocatedText').innerText = `$${currentSavings}`;
+      document.getElementById('totalSpentText').innerText = `$${totalSpent}`;
+
+      /* Calculate Bar Percentages */
+      const needsPct = Math.min(100, Math.max(0, (totalNeeds / STARTING_BUDGET) * 100));
+      const wantsPct = Math.min(100, Math.max(0, (totalWants / STARTING_BUDGET) * 100));
+      const savingsPct = Math.min(100, Math.max(0, (currentSavings / STARTING_BUDGET) * 100));
+      const allocatedPct = Math.min(100, ((totalSpent) / STARTING_BUDGET) * 100);
+
+      document.getElementById('barNeeds').style.width = `${needsPct}%`;
+      document.getElementById('barWants').style.width = `${wantsPct}%`;
+      document.getElementById('barSavings').style.width = `${savingsPct}%`;
+      document.getElementById('barRemaining').style.width = `${Math.max(0, 100 - (needsPct + wantsPct + savingsPct))}%`;
+      document.getElementById('percentAllocatedText').innerText = `${Math.round(allocatedPct)}% Used`;
+
+      /* Health Meter Color & Status */
+      const display = document.getElementById('remainingBudgetDisplay');
+      const badge = document.getElementById('budgetStatusBadge');
+      const subtext = document.getElementById('budgetSubtext');
+
+      if (remainingCash >= SAVINGS_GOAL) {
+        display.className = "text-4xl font-extrabold text-emerald-400 transition-colors duration-300";
+        badge.className = "px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        badge.innerText = "Healthy ($150+ Savings)";
+        subtext.innerText = "Great job! You have enough cash left to hit your bicycle savings goal!";
+      } else if (remainingCash >= 0) {
+        display.className = "text-4xl font-extrabold text-amber-400 transition-colors duration-300";
+        badge.className = "px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30";
+        badge.innerText = "Tight Budget";
+        subtext.innerText = "Warning: You are solvent, but falling short of your $150 savings goal.";
+      } else {
+        display.className = "text-4xl font-extrabold text-rose-500 transition-colors duration-300 animate-pulse";
+        badge.className = "px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30";
+        badge.innerText = "Over Budget!";
+        subtext.innerText = "DANGER! You spent more than your $1,000 allowance! Trim luxury wants.";
+      }
+
+      /* Update Chart */
+      updateChart(totalNeeds, totalWants, Math.max(0, remainingCash));
+    }
+
+
+    /* ==========================================================================
+       CHART.JS INTEGRATION
+       ========================================================================== */
+    function initChart() {
+      const ctx = document.getElementById('budgetChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Essential Needs', 'Luxury Wants', 'Unallocated Cash'],
+          datasets: [{
+            data: [0, 0, 1000],
+            backgroundColor: [
+              '#0284c7', // Sky blue for Needs
+              '#db2777', // Pink for Wants
+              '#334155'  // Slate for remaining
+            ],
+            borderWidth: 2,
+            borderColor: '#0f172a',
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.label}: $${context.raw}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateChart(needs, wants, remaining) {
+      if (!chartInstance) return;
+      chartInstance.data.datasets[0].data = [needs, wants, remaining];
+      chartInstance.update();
+    }
+
+
+    /* ==========================================================================
+       SURPRISE LIFE EVENTS SYSTEM
+       ========================================================================== */
+    function triggerRandomEvent() {
+      const randomIndex = Math.floor(Math.random() * lifeEventsPool.length);
+      currentEvent = lifeEventsPool[randomIndex];
+
+      // Populate Event Modal
+      document.getElementById('modalEventTitle').innerText = currentEvent.title;
+      document.getElementById('modalEventDesc').innerText = currentEvent.desc;
+      
+      const amountEl = document.getElementById('modalEventAmount');
+      if (currentEvent.amount >= 0) {
+        amountEl.innerText = `+$${currentEvent.amount}.00`;
+        amountEl.className = "text-3xl font-extrabold text-emerald-400 my-2";
+      } else {
+        amountEl.innerText = `-$${Math.abs(currentEvent.amount)}.00`;
+        amountEl.className = "text-3xl font-extrabold text-rose-400 my-2";
+      }
+
+      playSound('event');
+      openModal('eventModal');
+
+      // Update active card on main screen
+      showActiveEventCard();
+      updateBudgetStats();
+    }
+
+    function showActiveEventCard() {
+      if (!currentEvent) return;
+      const card = document.getElementById('activeEventCard');
+      card.classList.remove('hidden');
+
+      document.getElementById('eventTitle').innerText = currentEvent.title;
+      document.getElementById('eventDescription').innerText = currentEvent.desc;
+      
+      const amountEl = document.getElementById('eventAmount');
+      if (currentEvent.amount >= 0) {
+        amountEl.innerText = `+$${currentEvent.amount}`;
+        amountEl.className = "text-emerald-400 font-bold";
+      } else {
+        amountEl.innerText = `-$${Math.abs(currentEvent.amount)}`;
+        amountEl.className = "text-rose-400 font-bold";
+      }
+    }
+
+    function hideActiveEventCard() {
+      document.getElementById('activeEventCard').classList.add('hidden');
+    }
+
+
+    /* ==========================================================================
+       END-OF-MONTH EVALUATION & SUMMARY REPORT
+       ========================================================================== */
+    function evaluateMonth() {
+      let totalNeeds = 0;
+      let totalWants = 0;
+
+      Object.values(selections).forEach(opt => {
+        if (opt.type === 'need') totalNeeds += opt.cost;
+        else if (opt.type === 'want') totalWants += opt.cost;
+        else if (opt.type === 'balanced') {
+          totalNeeds += Math.round(opt.cost * 0.6);
+          totalWants += Math.round(opt.cost * 0.4);
+        }
+      });
+
+      const totalSpent = totalNeeds + totalWants;
+      const eventImpact = currentEvent ? currentEvent.amount : 0;
+      const finalCash = STARTING_BUDGET - totalSpent + eventImpact;
+
+      // Populate Summary Modal fields
+      document.getElementById('summarySpentNeeds').innerText = `$${totalNeeds}.00`;
+      document.getElementById('summarySpentWants').innerText = `$${totalWants}.00`;
+      document.getElementById('summaryEventImpact').innerText = eventImpact >= 0 ? `+$${eventImpact}.00` : `-$${Math.abs(eventImpact)}.00`;
+      document.getElementById('summaryFinalCash').innerText = `$${finalCash}.00`;
+
+      const needsStatusEl = document.getElementById('summaryNeedsStatus');
+      const savingsStatusEl = document.getElementById('summarySavingsStatus');
+      const gradeEl = document.getElementById('summaryGrade');
+      const feedbackBox = document.getElementById('summaryFeedbackBox');
+      const badgeEl = document.getElementById('summaryBadge');
+
+      // Check if essential needs were met (Always true if all 6 categories selected)
+      needsStatusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> 100% Met`;
+
+      // Grade logic
+      if (finalCash >= SAVINGS_GOAL) {
+        // VICTORY STATE!
+        gradeEl.innerText = "A+ (Master Saver!)";
+        gradeEl.className = "text-xl font-black text-emerald-400";
+        savingsStatusEl.innerHTML = `<i data-lucide="party-popper" class="w-4 h-4 text-amber-400"></i> Reached $${SAVINGS_GOAL}!`;
+        
+        badgeEl.className = "w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-emerald-500/20";
+        badgeEl.innerHTML = `<i data-lucide="trophy" class="w-10 h-10"></i>`;
+
+        feedbackBox.className = "p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs sm:text-sm text-emerald-200 mb-6";
+        feedbackBox.innerHTML = `
+          <h4 class="font-bold text-emerald-300 text-base mb-1">🎉 Fantastic Financial Planning!</h4>
+          <p>You covered all 6 essential living needs, managed discretionary wants wisely, and saved <strong>$${finalCash}</strong>! You can now buy your Dream Bicycle!</p>
+        `;
+
+        playSound('win');
+        triggerConfetti();
+
+      } else if (finalCash >= 0) {
+        // PASS STATE
+        gradeEl.innerText = "B (Good Balancer)";
+        gradeEl.className = "text-xl font-black text-amber-400";
+        savingsStatusEl.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i> $${finalCash} Saved (Goal: $150)`;
+
+        badgeEl.className = "w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-amber-500/20";
+        badgeEl.innerHTML = `<i data-lucide="award" class="w-10 h-10"></i>`;
+
+        feedbackBox.className = "p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs sm:text-sm text-amber-200 mb-6";
+        feedbackBox.innerHTML = `
+          <h4 class="font-bold text-amber-300 text-base mb-1">👍 You Stayed Out of Debt!</h4>
+          <p>You covered your basic needs without going negative, but you fell short of your $150 dream bicycle savings goal by <strong>$${SAVINGS_GOAL - finalCash}</strong>. Try replacing one luxury want with a balanced option next month!</p>
+        `;
+
+      } else {
+        // OVER BUDGET STATE
+        gradeEl.innerText = "D (Over Budget)";
+        gradeEl.className = "text-xl font-black text-rose-400";
+        savingsStatusEl.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i> In Debt (-$${Math.abs(finalCash)})`;
+
+        badgeEl.className = "w-20 h-20 rounded-3xl bg-gradient-to-tr from-rose-500 to-red-600 text-white flex items-center justify-center mx-auto mb-3 shadow-xl shadow-rose-500/20";
+        badgeEl.innerHTML = `<i data-lucide="alert-octagon" class="w-10 h-10"></i>`;
+
+        feedbackBox.className = "p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-xs sm:text-sm text-rose-200 mb-6";
+        feedbackBox.innerHTML = `
+          <h4 class="font-bold text-rose-300 text-base mb-1">⚠️ Money Warning!</h4>
+          <p>You spent <strong>$${Math.abs(finalCash)}</strong> more than your total $1,000 allowance! When money is tight, trim luxury items like daily takeout or designer shoes first.</p>
+        `;
+      }
+
+      lucide.createIcons();
+      openModal('summaryModal');
+    }
+
+
+    /* Celebration Confetti */
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+
+    /* ==========================================================================
+       MODAL CONTROLLERS & RESET
+       ========================================================================== */
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function openTutorialModal() {
+      openModal('tutorialModal');
+    }
+
+    function resetGame() {
+      closeModal('summaryModal');
+      closeModal('eventModal');
+      initGame();
+    }
+  </script>
+</body>
+</html>
